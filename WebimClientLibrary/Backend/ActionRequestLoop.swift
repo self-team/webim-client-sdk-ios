@@ -40,13 +40,15 @@ class ActionRequestLoop: AbstractRequestLoop {
     private let internalErrorListener: InternalErrorListener
     var operationQueue: OperationQueue?
     private var authorizationData: AuthorizationData?
+    private let shouldCheckSSLCertificate: Bool 
     
-    
-    // MARK: - Initialization
+    // MARK: - Initialization 
     init(completionHandlerExecutor: ExecIfNotDestroyedHandlerExecutor,
-         internalErrorListener: InternalErrorListener) {
+         internalErrorListener: InternalErrorListener,
+         shouldCheckSSLCertificate: Bool) {
         self.completionHandlerExecutor = completionHandlerExecutor
         self.internalErrorListener = internalErrorListener
+        self.shouldCheckSSLCertificate = shouldCheckSSLCertificate
     }
     
     // MARK: - Methods
@@ -130,7 +132,8 @@ class ActionRequestLoop: AbstractRequestLoop {
             urlRequest!.httpMethod = httpMethod.rawValue
             
             do {
-                let data = try self.perform(request: urlRequest!)
+                let data = try self.perform(request: urlRequest!,
+                                            shouldCheckSSLCertificate: self.shouldCheckSSLCertificate) 
                 if let dataJSON = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     if let error = dataJSON[AbstractRequestLoop.ResponseFields.error.rawValue] as? String {
                         switch error {
@@ -166,7 +169,7 @@ class ActionRequestLoop: AbstractRequestLoop {
                              WebimInternalError.notAllowed.rawValue,
                              WebimInternalError.messageNotOwned.rawValue:
                             self.handleDeleteMessage(error: error,
-                                                    ofRequest: request)
+                                                     ofRequest: request)
                             break
                         case WebimInternalError.buttonIdNotSet.rawValue,
                              WebimInternalError.requestMessageIdNotSet.rawValue,
@@ -327,7 +330,7 @@ class ActionRequestLoop: AbstractRequestLoop {
     }
     
     private func handleDeleteMessage(error errorString: String,
-                                    ofRequest webimRequest: WebimRequest) {
+                                     ofRequest webimRequest: WebimRequest) {
         if let deleteMessageCompletionHandler = webimRequest.getDeleteMessageCompletionHandler() {
             completionHandlerExecutor.execute(task: DispatchWorkItem {
                 let deleteMessageError: DeleteMessageError

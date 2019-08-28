@@ -38,11 +38,13 @@ class FAQRequestLoop: AbstractRequestLoop {
     // MARK: - Properties
     private let completionHandlerExecutor: ExecIfNotDestroyedFAQHandlerExecutor
     var operationQueue: OperationQueue?
+    private let shouldCheckSSLCertificate: Bool 
     
-    
-    // MARK: - Initialization
-    init(completionHandlerExecutor: ExecIfNotDestroyedFAQHandlerExecutor) {
+    // MARK: - Initialization 
+    init(completionHandlerExecutor: ExecIfNotDestroyedFAQHandlerExecutor,
+         shouldCheckSSLCertificate: Bool) {
         self.completionHandlerExecutor = completionHandlerExecutor
+        self.shouldCheckSSLCertificate = shouldCheckSSLCertificate
     }
     
     // MARK: - Methods
@@ -99,7 +101,7 @@ class FAQRequestLoop: AbstractRequestLoop {
             urlRequest!.httpMethod = httpMethod.rawValue
             
             do {
-                let data = try self.perform(request: urlRequest!)
+                let data = try self.perform(request: urlRequest!, shouldCheckSSLCertificate: self.shouldCheckSSLCertificate)
                 if let _ = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
                     if let completionHandler = request.getFAQSearchCompletionHandler() {
                         self.completionHandlerExecutor.execute(task: DispatchWorkItem {

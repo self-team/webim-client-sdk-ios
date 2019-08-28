@@ -146,7 +146,8 @@ public final class SessionBuilder  {
     private weak var webimLogger: WebimLogger?
     private var webimLoggerVerbosityLevel: WebimLoggerVerbosityLevel?
     private var prechat: String?
-
+    private var shouldCheckSSLCertificate = true
+    
     // MARK: - Methods
 
     /**
@@ -426,10 +427,25 @@ public final class SessionBuilder  {
                     verbosityLevel: WebimLoggerVerbosityLevel = .WARNING) -> SessionBuilder {
         self.webimLogger = webimLogger
         webimLoggerVerbosityLevel = verbosityLevel
-
+        
         return self
     }
-
+    
+    /**
+     If set to false, no SSL validation is performed.
+     - important:
+     Use only for test builds!
+     - parameter shouldCheckSSLCertificate:
+     Boolean parameter that indicated if an app should check SSL certificates.
+     - returns:
+     `SessionBuilder` object with shouldCheckSSLCertificate parameter set.
+     */
+    public func set(shouldCheckSSLCertificate: Bool) -> SessionBuilder {
+        self.shouldCheckSSLCertificate = shouldCheckSSLCertificate
+        
+        return self
+    }
+    
     /**
      Builds new `WebimSession` object.
      - important:
@@ -532,7 +548,8 @@ public final class SessionBuilder  {
                                                 isVisitorDataClearingEnabled: visitorDataClearingEnabled,
                                                 webimLogger: webimLogger,
                                                 verbosityLevel: webimLoggerVerbosityLevel,
-                prechat: prechat) as WebimSession
+                                                prechat: prechat,
+                                                shouldCheckSSLCertificate: shouldCheckSSLCertificate) as WebimSession 
     }
 
     // MARK: -

@@ -58,6 +58,7 @@ class AbstractRequestLoop {
     var paused = true
     var running = true
     private var currentDataTask: URLSessionDataTask?
+    private var noSSLURLSession = URLSession(configuration: .default, delegate: NoSSLValidationURLSessionDelegate(), delegateQueue: nil)
     
     // MARK: - Methods
     
@@ -81,7 +82,7 @@ class AbstractRequestLoop {
     func stop() {
         running = false
         resume()
-            
+        
         if let currentDataTask = currentDataTask {
             currentDataTask.cancel()
         }
@@ -91,7 +92,7 @@ class AbstractRequestLoop {
         return running
     }
     
-    func perform(request: URLRequest) throws -> Data {
+    func perform(request: URLRequest, shouldCheckSSLCertificate: Bool) throws -> Data { 
         var requestWithUesrAngent = request
         requestWithUesrAngent.setValue("iOS: Webim-Client 3.27.0; (\(UIDevice.current.model); \(UIDevice.current.systemVersion)); Bundle ID and version: \(Bundle.main.bundleIdentifier ?? "none") \(Bundle.main.infoDictionary?["CFBundleVersion"] ?? "none")", forHTTPHeaderField: "User-Agent")
         
@@ -104,10 +105,11 @@ class AbstractRequestLoop {
             
             let semaphore = DispatchSemaphore(value: 0)
             var receivedData: Data? = nil
+            let urlSession = (shouldCheckSSLCertificate) ? URLSession.shared : noSSLURLSession
             
             log(request: requestWithUesrAngent)
             
-            let dataTask = URLSession.shared.dataTask(with: requestWithUesrAngent) { [weak self] data, response, error in
+            let dataTask = urlSession.dataTask(with: requestWithUesrAngent) { [weak self] data, response, error in
                 guard let `self` = `self` else {
                     return
                 }
@@ -275,4 +277,16 @@ class AbstractRequestLoop {
         return ""
     }
     
+}
+
+class NoSSLValidationURLSessionDelegate: NSObject, URLSessionDelegate {
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodClientCertificate) {
+            completionHandler(.rejectProtectionSpace, nil)
+        }
+        if (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
+            let credential = URLCredential(trust: challenge.protectionSpace.serverTrust!)
+            completionHandler(.useCredential, credential)
+        }
+    }
 }

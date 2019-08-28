@@ -59,8 +59,9 @@ class DeltaRequestLoop: AbstractRequestLoop {
     private var visitorFieldsJSONString: String?
     private var visitorJSONString: String?
     private var prechat: String?
+    private let shouldCheckSSLCertificate: Bool 
     
-    // MARK: - Initialization
+    // MARK: - Initialization 
     init(deltaCallback: DeltaCallback,
          completionHandlerExecutor: ExecIfNotDestroyedHandlerExecutor,
          sessionParametersListener: SessionParametersListener?,
@@ -77,7 +78,8 @@ class DeltaRequestLoop: AbstractRequestLoop {
          visitorJSONString: String?,
          sessionID: String?,
          prechat:String?,
-         authorizationData: AuthorizationData?) {
+         authorizationData: AuthorizationData?,
+         shouldCheckSSLCertificate: Bool) {
         self.deltaCallback = deltaCallback
         self.completionHandlerExecutor = completionHandlerExecutor
         self.sessionParametersListener = sessionParametersListener
@@ -95,6 +97,7 @@ class DeltaRequestLoop: AbstractRequestLoop {
         self.providedAuthenticationTokenStateListener = providedAuthenticationTokenStateListener
         self.providedAuthenticationToken = providedAuthenticationToken
         self.prechat = prechat
+        self.shouldCheckSSLCertificate = shouldCheckSSLCertificate
     }
     
     // MARK: - Methods
@@ -149,7 +152,7 @@ class DeltaRequestLoop: AbstractRequestLoop {
         request.httpMethod = AbstractRequestLoop.HTTPMethods.get.rawValue
         
         do {
-            let data = try perform(request: request)
+            let data = try perform(request: request, shouldCheckSSLCertificate: shouldCheckSSLCertificate) 
             if let dataJSON = try? (JSONSerialization.jsonObject(with: data) as! [String: Any]) {
                 if let error = dataJSON[AbstractRequestLoop.ResponseFields.error.rawValue] as? String {
                     handleInitialization(error: error)
@@ -196,7 +199,7 @@ class DeltaRequestLoop: AbstractRequestLoop {
         request.httpMethod = AbstractRequestLoop.HTTPMethods.get.rawValue
         
         do {
-            let data = try perform(request: request)
+            let data = try perform(request: request, shouldCheckSSLCertificate: shouldCheckSSLCertificate) 
             if let dataJSON = try? (JSONSerialization.jsonObject(with: data) as! [String: Any]) {
                 if let error = dataJSON[AbstractRequestLoop.ResponseFields.error.rawValue] as? String {
                     handleDeltaRequest(error: error)
@@ -245,8 +248,8 @@ class DeltaRequestLoop: AbstractRequestLoop {
                                    WebimActions.Parameter.location.rawValue: location,
                                    WebimActions.Parameter.platform.rawValue: WebimActions.Platform.ios.rawValue,
                                    WebimActions.Parameter.respondImmediately.rawValue: String(1), // true
-                                   WebimActions.Parameter.since.rawValue: String(0),
-                                   WebimActions.Parameter.title.rawValue: title] as [String: Any]
+            WebimActions.Parameter.since.rawValue: String(0),
+            WebimActions.Parameter.title.rawValue: title] as [String: Any]
         if let appVersion = appVersion {
             parameterDictionary[WebimActions.Parameter.applicationVersion.rawValue] = appVersion
         }

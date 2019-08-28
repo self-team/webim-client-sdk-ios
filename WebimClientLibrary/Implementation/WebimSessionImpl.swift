@@ -100,7 +100,8 @@ final class WebimSessionImpl {
                                 isVisitorDataClearingEnabled: Bool,
                                 webimLogger: WebimLogger?,
                                 verbosityLevel: SessionBuilder.WebimLoggerVerbosityLevel?,
-                                prechat: String?) -> WebimSessionImpl {
+                                prechat: String?,
+                                shouldCheckSSLCertificate: Bool) -> WebimSessionImpl { 
         WebimInternalLogger.setup(webimLogger: webimLogger,
                                   verbosityLevel: verbosityLevel)
         
@@ -157,6 +158,7 @@ final class WebimSessionImpl {
             .set(deviceToken: deviceToken)
             .set(deviceID: getDeviceID())
             .set(prechat: prechat)
+            .set(shouldCheckSSLCertificate: shouldCheckSSLCertificate) 
             .build() as WebimClient
         
         var historyStorage: HistoryStorage
@@ -321,7 +323,7 @@ final class WebimSessionImpl {
         }
         
         return uuidString as! String
-    }   
+    }
     
 }
 
@@ -462,18 +464,18 @@ final class HistoryPoller {
         } else {
             if !self.hasHistoryRevision {
                 // Setting next history polling in TimeInterval.HISTORY_POLL after lastPollingTime.
-            
+                
                 let dispatchTime = DispatchTime(uptimeNanoseconds: (UInt64((lastPollingTime + TimeInterval.historyPolling.rawValue) * 1_000_000) - UInt64((uptime) * 1_000_000)))
-            
+                
                 dispatchWorkItem = DispatchWorkItem() { [weak self] in
                     guard let `self` = self else {
                         return
                     }
-                
+                    
                     self.requestHistory(since: self.lastRevision,
                                         completion: self.historySinceCompletionHandler!)
                 }
-            
+                
                 queue.asyncAfter(deadline: dispatchTime,
                                  execute: dispatchWorkItem!)
             }
@@ -494,7 +496,7 @@ final class HistoryPoller {
         return { [weak self] (messageList: [MessageImpl], deleted: Set<String>, hasMore: Bool, isInitial: Bool, revision: String?) in
             guard let `self` = self,
                 !self.sessionDestroyer.isDestroyed() else {
-                return
+                    return
             }
             
             self.lastPollingTime = Int64(ProcessInfo.processInfo.systemUptime) * 1000

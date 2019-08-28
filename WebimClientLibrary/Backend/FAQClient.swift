@@ -37,6 +37,7 @@ final class FAQClientBuilder {
     // MARK: - Properties
     private var baseURL: String?
     private var completionHandlerExecutor: ExecIfNotDestroyedFAQHandlerExecutor?
+    private var shouldCheckSSLCertificate = true 
     
     // MARK: - Builder methods
     
@@ -52,11 +53,16 @@ final class FAQClientBuilder {
         return self
     }
     
+    public func set(shouldCheckSSLCertificate: Bool) -> FAQClientBuilder {
+        self.shouldCheckSSLCertificate = shouldCheckSSLCertificate
+        return self
+    }
+    
     func build() -> FAQClient {
-        let faqRequestLoop = FAQRequestLoop(completionHandlerExecutor: completionHandlerExecutor!)
+        let faqRequestLoop = FAQRequestLoop(completionHandlerExecutor: completionHandlerExecutor!, shouldCheckSSLCertificate: shouldCheckSSLCertificate)
         
         return FAQClient(withFAQRequestLoop: faqRequestLoop,
-                        faqActions: FAQActions(baseURL: baseURL!, faqRequestLoop: faqRequestLoop))
+                         faqActions: FAQActions(baseURL: baseURL!, faqRequestLoop: faqRequestLoop))
     }
     
 }

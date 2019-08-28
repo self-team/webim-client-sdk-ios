@@ -52,6 +52,7 @@ final class WebimClientBuilder {
     private var title: String?
     private var visitorFieldsJSONString: String?
     private var visitorJSONString: String?
+    private var shouldCheckSSLCertificate = true
     
     // MARK: - Builder methods
     
@@ -152,9 +153,15 @@ final class WebimClientBuilder {
         return self
     }
     
+    public func set(shouldCheckSSLCertificate: Bool) -> WebimClientBuilder {
+        self.shouldCheckSSLCertificate = shouldCheckSSLCertificate
+        return self
+    }
+    
     func build() -> WebimClient {
         let actionRequestLoop = ActionRequestLoop(completionHandlerExecutor: completionHandlerExecutor!,
-                                                  internalErrorListener: internalErrorListener!)
+                                                  internalErrorListener: internalErrorListener!,
+                                                  shouldCheckSSLCertificate: shouldCheckSSLCertificate)
         
         actionRequestLoop.set(authorizationData: authorizationData)
         
@@ -175,8 +182,8 @@ final class WebimClientBuilder {
                                                 visitorJSONString: visitorJSONString,
                                                 sessionID: sessionID,
                                                 prechat: prechat,
-                                                authorizationData: authorizationData
-                                                )
+                                                authorizationData: authorizationData,
+                                                shouldCheckSSLCertificate: shouldCheckSSLCertificate)
         
         return WebimClient(withActionRequestLoop: actionRequestLoop,
                            deltaRequestLoop: deltaRequestLoop,
