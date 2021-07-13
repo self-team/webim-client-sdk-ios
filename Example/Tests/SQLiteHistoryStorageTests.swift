@@ -34,6 +34,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
     private static let DB_NAME = "test"
     private static let SERVER_URL_STRING = "https://demo.webim.ru"
     private static let userDefaultsKey = "userDefaultsKey"
+    let timeout = 8.0
     
     // MARK: - Properties
     var sqLiteHistoryStorage: SQLiteHistoryStorage?
@@ -51,7 +52,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
         sqLiteHistoryStorage = SQLiteHistoryStorage(dbName: SQLiteHistoryStorageTests.DB_NAME,
                                                     serverURL: SQLiteHistoryStorageTests.DB_NAME,
                                                     webimClient: WebimClient(withActionRequestLoop: actionRequestLoop,
-                                                                             deltaRequestLoop: DeltaRequestLoop(deltaCallback: DeltaCallback(currentChatMessageMapper: CurrentChatMessageMapper(withServerURLString: SQLiteHistoryStorageTests.SERVER_URL_STRING)),
+                                                                             deltaRequestLoop: DeltaRequestLoop(deltaCallback: DeltaCallback(currentChatMessageMapper: CurrentChatMessageMapper(withServerURLString: SQLiteHistoryStorageTests.SERVER_URL_STRING), userDefaultsKey: SQLiteHistoryStorageTests.userDefaultsKey),
                                                                                                                 completionHandlerExecutor: exeIfNotDestroyedHandlerExecutor,
                                                                                                                 sessionParametersListener: nil,
                                                                                                                 internalErrorListener: internalErrorListener,
@@ -77,7 +78,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
     
     override func tearDown() {
         let fileManager = FileManager.default
-        let documentsPath = try! fileManager.url(for: .documentDirectory,
+        let documentsPath = try! fileManager.url(for: .applicationSupportDirectory,
                                                  in: .userDomainMask,
                                                  appropriateFor: nil,
                                                  create: false)
@@ -101,18 +102,23 @@ class SQLiteHistoryStorageTests: XCTestCase {
                                         keyboard: nil,
                                         keyboardRequest: nil,
                                         operatorID: "1",
+                                        quote: nil,
                                         senderAvatarURLString: nil,
                                         senderName: "Name",
-                                        type: MessageType.OPERATOR,
+                                        sendStatus: .sent,
+                                        sticker: nil,
+                                        type: MessageType.operatorMessage,
+                                        rawData: nil,
                                         data: nil,
                                         text: "Text",
                                         timeInMicrosecond: Int64(index * 1_000_000_000_000),
-                                        attachment: nil,
                                         historyMessage: true,
                                         internalID: String(index),
                                         rawText: nil,
                                         read: true,
-                                        messageCanBeEdited: false))
+                                        messageCanBeEdited: false,
+                                        messageCanBeReplied: false,
+                                        messageIsEdited: false))
         }
         
         return messages
@@ -122,7 +128,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
     
     func testGetMajorVersion() {
         XCTAssertEqual(sqLiteHistoryStorage!.getMajorVersion(),
-                       1)
+                       7)
     }
     
     func testGetFullHistory() {
@@ -138,7 +144,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
             expectation.fulfill()
         }
         wait(for: [expectation],
-             timeout: 1.0)
+             timeout: timeout)
         
         XCTAssertEqual(gettedMessages.count,
                        messagesCount)
@@ -157,7 +163,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
             gettedMessages = messages
         }
         wait(for: [expectation],
-             timeout: 1.0)
+             timeout: timeout)
         
         XCTAssertEqual(gettedMessages.count,
                        messagesLimit)
@@ -186,7 +192,7 @@ class SQLiteHistoryStorageTests: XCTestCase {
                                                 expectation.fulfill()
         }
         wait(for: [expectation],
-             timeout: 1.0)
+             timeout: timeout)
         
         XCTAssertEqual(gettedMessages.count,
                        messagesLimit)

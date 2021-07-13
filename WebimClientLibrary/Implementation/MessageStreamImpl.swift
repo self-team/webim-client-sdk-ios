@@ -58,6 +58,7 @@ final class MessageStreamImpl {
     private weak var operatorTypingListener: OperatorTypingListener?
     private var onlineStatus: OnlineStatusItem = .unknown
     private weak var onlineStatusChangeListener: OnlineStatusChangeListener?
+    private var surveyFactory: SurveyFactory
     private var unreadByOperatorTimestamp: Date?
     private weak var unreadByOperatorTimestampChangeListener: UnreadByOperatorTimestampChangeListener?
     private var unreadByVisitorMessageCount: Int
@@ -66,12 +67,16 @@ final class MessageStreamImpl {
     private weak var unreadByVisitorTimestampChangeListener: UnreadByVisitorTimestampChangeListener?
     private var visitSessionState: VisitSessionStateItem = .unknown
     private weak var visitSessionStateListener: VisitSessionStateListener?
+    private var surveyController: SurveyController?
+    private var helloMessage: String?
+    private weak var helloMessageListener: HelloMessageListener?
     
     // MARK: - Initialization
     init(serverURLString: String,
          currentChatMessageFactoriesMapper: MessageMapper,
          sendingMessageFactory: SendingFactory,
          operatorFactory: OperatorFactory,
+         surveyFactory: SurveyFactory,
          accessChecker: AccessChecker,
          webimActions: WebimActions,
          messageHolder: MessageHolder,
@@ -81,6 +86,7 @@ final class MessageStreamImpl {
         self.currentChatMessageFactoriesMapper = currentChatMessageFactoriesMapper
         self.sendingMessageFactory = sendingMessageFactory
         self.operatorFactory = operatorFactory
+        self.surveyFactory = surveyFactory
         self.accessChecker = accessChecker
         self.webimActions = webimActions
         self.messageHolder = messageHolder
@@ -140,14 +146,29 @@ final class MessageStreamImpl {
     }
     
     func changingChatStateOf(chat: ChatItem?) {
+        guard let chat = chat else {
+            messageHolder.receiving(newChat: self.chat,
+                                    previousChat: nil,
+                                    newMessages: [MessageImpl]())
+            chatStateListener?.changed(state: publicState(ofChatState: lastChatState),
+                                       to: publicState(ofChatState: ChatItem.ChatItemState.closed))
+            lastChatState = ChatItem.ChatItemState.closed
+            let newOperator = operatorFactory.createOperatorFrom(operatorItem: nil)
+            let previousOperator = currentOperator
+            currentOperatorChangeListener?.changed(operator: previousOperator,
+                                                   to: newOperator)
+            currentOperator = newOperator
+            operatorTypingListener?.onOperatorTypingStateChanged(isTyping: false)
+            return
+        }
         let previousChat = self.chat
         self.chat = chat
         
         messageHolder.receiving(newChat: self.chat,
                                 previousChat: previousChat,
-                                newMessages: (self.chat == nil) ? [MessageImpl]() : currentChatMessageFactoriesMapper.mapAll(messages: self.chat!.getMessages()))
+                                newMessages: currentChatMessageFactoriesMapper.mapAll(messages: chat.getMessages()))
         
-        let newChatState = (self.chat == nil) ? .closed : self.chat!.getState()
+        let newChatState = chat.getState()
         if let newChatState = newChatState {
             // Recieved chat state can be unsupported by the library.
             if lastChatState != newChatState {
@@ -166,25 +187,23 @@ final class MessageStreamImpl {
                                                        to: newOperator)
         }
         
-        let operatorTypingStatus = ((chat != nil)
-            && chat!.isOperatorTyping())
+        let operatorTypingStatus = chat.isOperatorTyping()
         if lastOperatorTypingStatus != operatorTypingStatus {
             operatorTypingListener?.onOperatorTypingStateChanged(isTyping: operatorTypingStatus)
         }
         lastOperatorTypingStatus = operatorTypingStatus
         
-        if let unreadByOperatorTimestamp = chat?.getUnreadByOperatorTimestamp() {
+        if let unreadByOperatorTimestamp = chat.getUnreadByOperatorTimestamp() {
             set(unreadByOperatorTimestamp: Date(timeIntervalSince1970: unreadByOperatorTimestamp))
         }
         
-        if let unreadByVisitorMessageCount = chat?.getUnreadByVisitorMessageCount() {
-            set(unreadByVisitorMessageCount: unreadByVisitorMessageCount)
-        }
+        let unreadByVisitorMessageCount = chat.getUnreadByVisitorMessageCount()
+        set(unreadByVisitorMessageCount: unreadByVisitorMessageCount)
         
-        if let unreadByVisitorTimestamp = chat?.getUnreadByVisitorTimestamp() {
+        if let unreadByVisitorTimestamp = chat.getUnreadByVisitorTimestamp() {
             set(unreadByVisitorTimestamp: Date(timeIntervalSince1970: unreadByVisitorTimestamp))
         }
-        if chat?.getReadByVisitor() == true {
+        if chat.getReadByVisitor() == true {
             set(unreadByVisitorTimestamp: nil)
         }
     }
@@ -227,58 +246,89 @@ final class MessageStreamImpl {
         departmentListChangeListener?.received(departmentList: departmentList)
     }
     
+    func onReceived(surveyItem: SurveyItem) {
+        if let surveyController = surveyController,
+            let survey = surveyFactory.createSurveyFrom(surveyItem: surveyItem) {
+            surveyController.set(survey: survey)
+            surveyController.nextQuestion()
+        }
+    }
+
+    func onSurveyCancelled() {
+        if let surveyController = surveyController {
+            surveyController.cancelSurvey()
+        }
+    }
+    
+    func handleHelloMessage(showHelloMessage: Bool?,
+                            chatStartAfterMessage: Bool?,
+                            currentChatEmpty: Bool?,
+                            helloMessageDescr: String?) {
+        guard helloMessageListener != nil,
+              let showHelloMessage = showHelloMessage,
+              let chatStartAfterMessage = chatStartAfterMessage,
+              let currentChatEmpty = currentChatEmpty,
+              let helloMessageDescr = helloMessageDescr else {
+            return
+        }
+        
+        if showHelloMessage && chatStartAfterMessage && currentChatEmpty && messageHolder.historyMessagesEmpty() {
+            helloMessageListener?.helloMessage(message: helloMessageDescr)
+        }
+    }
+    
     // MARK: Private methods
     
     private func publicState(ofChatState chatState: ChatItem.ChatItemState) -> ChatState {
         switch chatState {
         case .queue:
-            return .QUEUE
+            return .queue
         case .chatting:
-            return .CHATTING
+            return .chatting
         case .chattingWithRobot:
-            return .CHATTING_WITH_ROBOT
+            return .chattingWithRobot
         case .closed:
-            return .NONE
+            return .closed
         case .closedByVisitor:
-            return .CLOSED_BY_VISITOR
+            return .closedByVisitor
         case .closedByOperator:
-            return .CLOSED_BY_OPERATOR
+            return .closedByOperator
         case .invitation:
-            return .INVITATION
+            return .invitation
         default:
-            return .UNKNOWN
+            return .unknown
         }
     }
     
     private func publicState(ofOnlineStatus onlineStatus: OnlineStatusItem) -> OnlineStatus {
         switch onlineStatus {
         case .busyOffline:
-            return .BUSY_OFFLINE
+            return .busyOffline
         case .busyOnline:
-            return .BUSY_ONLINE
+            return .busyOnline
         case .offline:
-            return .OFFLINE
+            return .offline
         case .online:
-            return .ONLINE
+            return .online
         default:
-            return .UNKNOWN
+            return .unknown
         }
     }
     
     private func publicState(ofVisitSessionState visitSessionState: VisitSessionStateItem) -> VisitSessionState {
         switch visitSessionState {
         case .chat:
-            return .CHAT
+            return .chat
         case .departmentSelection:
-            return .DEPARTMENT_SELECTION
+            return .departmentSelection
         case .idle:
-            return .IDLE
+            return .idle
         case .idleAfterChat:
-            return .IDLE_AFTER_CHAT
+            return .idleAfterChat
         case .offlineMessage:
-            return .OFFLINE_MESSAGE
+            return .offlineMessage
         default:
-            return .UNKNOWN
+            return .unknown
         }
     }
     
@@ -322,19 +372,25 @@ extension MessageStreamImpl: MessageStream {
     }
     
     func getLastRatingOfOperatorWith(id: String) -> Int {
+        // rating in [-2, 2]
         let rating = chat?.getOperatorIDToRate()?[id]
         
-        return ((rating == nil) ? 0 : rating!.getRating())
+        // rating in [1, 5]
+        return (rating?.getRating() ?? -3) + 3
     }
     
+    func rateOperatorWith(id: String?, byRating rating: Int, completionHandler: RateOperatorCompletionHandler?) throws {
+        try rateOperatorWith(id: id, note: nil, byRating: rating, completionHandler: completionHandler)
+    }
     
     func rateOperatorWith(id: String?,
+                          note: String?,
                           byRating rating: Int,
                           completionHandler: RateOperatorCompletionHandler?) throws {
         guard rating >= 1,
             rating <= 5 else {
             WebimInternalLogger.shared.log(entry: "Rating must be within from 1 to 5 range. Passed value: \(rating)",
-                verbosityLevel: .WARNING)
+                verbosityLevel: .warning)
             
             return
         }
@@ -343,6 +399,7 @@ extension MessageStreamImpl: MessageStream {
         
         webimActions.rateOperatorWith(id: id,
                                       rating: (rating - 3), // Accepted range: (-2, -1, 0, 1, 2).
+                                      visitorNote: note,
                                       completionHandler: completionHandler)
     }
     
@@ -400,11 +457,7 @@ extension MessageStreamImpl: MessageStream {
     
     func closeChat() throws {
         try accessChecker.checkAccess()
-        
-        let chatIsOpen = ((lastChatState != .closedByVisitor)
-            && (lastChatState != .closed))
-            && (lastChatState != .unknown)
-        if chatIsOpen {
+        if !lastChatState.isClosed() {
             webimActions.closeChat()
         }
     }
@@ -419,10 +472,15 @@ extension MessageStreamImpl: MessageStream {
         return try sendMessageInternally(messageText: message)
     }
     
+    func send(message: String, completionHandler: SendMessageCompletionHandler?) throws -> String {
+        return try sendMessageInternally(messageText: message, sendMessageComplitionHandler: completionHandler)
+    }
+    
     func send(message: String,
               data: [String: Any]?,
               completionHandler: DataMessageCompletionHandler?) throws -> String {
-        if data != nil, let jsonData = try? JSONSerialization.data(withJSONObject: data as Any,
+        if let data = data,
+            let jsonData = try? JSONSerialization.data(withJSONObject: data as Any,
                                                       options: []) {
             let jsonString = String(data: jsonData,
                                     encoding: .utf8)
@@ -445,19 +503,123 @@ extension MessageStreamImpl: MessageStream {
               filename: String,
               mimeType: String,
               completionHandler: SendFileCompletionHandler?) throws -> String {
+        try accessChecker.checkAccess()
+        
+        var file = file,
+            filename = filename,
+            mimeType = mimeType
+        
         try startChat()
         
         let messageID = ClientSideID.generateClientSideID()
         messageHolder.sending(message: sendingMessageFactory.createFileMessageToSendWith(id: messageID))
+        
+        if mimeType == "image/heic" || mimeType == "image/heif" {
+            guard let image = UIImage(data: file),
+                let imageData = image.jpegData(compressionQuality: 0.5)
+                else {
+                print("Error with heic/heif"); return String()
+            }
+            
+            mimeType = "image/jpeg"
+            file = imageData
+            
+            var nameComponents = filename.components(separatedBy: ".")
+            if nameComponents.count > 1 {
+                nameComponents.removeLast()
+                filename = nameComponents.joined(separator: ".")
+            }
+            filename += ".jpeg"
+        }
         
         webimActions.send(file: file,
                           filename: filename,
                           mimeType: mimeType,
                           clientSideID: messageID,
                           completionHandler: SendFileCompletionHandlerWrapper(sendFileCompletionHandler: completionHandler,
-                                                                              messageHolder: messageHolder))
+                                                                              messageHolder: messageHolder),
+                          uploadFileToServerCompletionHandler: nil)
         
         return messageID
+    }
+    
+    func send(uploadedFiles: [UploadedFile],
+              completionHandler: SendFilesCompletionHandler?) throws -> String {
+        try accessChecker.checkAccess()
+        
+        try startChat()
+        
+        let messageID = ClientSideID.generateClientSideID()
+        if uploadedFiles.isEmpty {
+            completionHandler?.onFailure(messageID: messageID, error: .fileNotFound)
+            return messageID
+        }
+        if uploadedFiles.count > 10 {
+            completionHandler?.onFailure(messageID: messageID, error: .maxFilesCountPerMessage)
+            return messageID
+        }
+        var message = "[\(uploadedFiles[0].description)"
+        for uploadFile in uploadedFiles.dropFirst() {
+            message += ", \(uploadFile.description)"
+        }
+        message += "]"
+        messageHolder.sending(message: sendingMessageFactory.createFileMessageToSendWith(id: messageID))
+        
+        webimActions.sendFiles(message: message,
+                               clientSideID: messageID,
+                               isHintQuestion: false,
+                               sendFilesCompletionHandler: completionHandler)
+        
+        return messageID
+    }
+    
+    func uploadFilesToServer(file: Data,
+                             filename: String,
+                             mimeType: String,
+                             completionHandler: UploadFileToServerCompletionHandler?) throws -> String {
+        try accessChecker.checkAccess()
+        
+        var file = file
+        var filename = filename
+        var mimeType = mimeType
+        
+        try startChat()
+        
+        let messageID = ClientSideID.generateClientSideID()
+        
+        if mimeType == "image/heic" || mimeType == "image/heif" {
+            guard let image = UIImage(data: file),
+                let imageData = image.jpegData(compressionQuality: 0.5)
+                else {
+                print("Error with heic/heif"); return String()
+            }
+            
+            mimeType = "image/jpeg"
+            file = imageData
+            
+            var nameComponents = filename.components(separatedBy: ".")
+            if nameComponents.count > 1 {
+                nameComponents.removeLast()
+                filename = nameComponents.joined(separator: ".")
+            }
+            filename += ".jpeg"
+        }
+        
+        webimActions.send(file: file,
+                          filename: filename,
+                          mimeType: mimeType,
+                          clientSideID: messageID, completionHandler: nil,
+                          uploadFileToServerCompletionHandler: completionHandler)
+        
+        return messageID
+    }
+    
+    func deleteUploadedFiles(fileGuid: String,
+                             completionHandler: DeleteUploadedFileCompletionHandler?) throws {
+        try accessChecker.checkAccess()
+        
+        webimActions.deleteUploadedFile(fileGuid: fileGuid,
+                                        completionHandler: completionHandler)
     }
     
     func sendKeyboardRequest(button: KeyboardButton,
@@ -466,9 +628,28 @@ extension MessageStreamImpl: MessageStream {
         try accessChecker.checkAccess()
         
         webimActions.sendKeyboardRequest(buttonId: button.getID(),
-                                         messageId: message.getID(),
+                                         messageId: message.getCurrentChatID() ?? "",
                                          completionHandler: completionHandler)
     }
+    
+    func sendKeyboardRequest(buttonID: String,
+                             messageCurrentChatID: String,
+                             completionHandler: SendKeyboardRequestCompletionHandler?) throws {
+        try accessChecker.checkAccess()
+        
+        webimActions.sendKeyboardRequest(buttonId: buttonID,
+                                         messageId: messageCurrentChatID,
+                                         completionHandler: completionHandler)
+    }
+    
+    func sendSticker(withId stickerId: Int, completionHandler: SendStickerCompletionHandler?) throws {
+        try accessChecker.checkAccess()
+        
+        let messageID = ClientSideID.generateClientSideID()
+        messageHolder.sending(message: sendingMessageFactory.createStickerMessageToSendWith(id: messageID, stickerId: stickerId))
+        webimActions.sendSticker(stickerId: stickerId, clientSideId: messageID, completionHandler: completionHandler)
+    }
+    
     
     func updateWidgetStatus(data: String) throws {
         try accessChecker.checkAccess()
@@ -502,14 +683,14 @@ extension MessageStreamImpl: MessageStream {
         }
         let id = message.getID()
         let oldMessage = messageHolder.changing(messageID: id, message: text)
-        if oldMessage != nil {
+        if let oldMessage = oldMessage {
             webimActions.send(message: text,
                               clientSideID: id,
                               dataJSONString: nil,
                               isHintQuestion: false,
-                              editMessageCompletionHandler: EditMessageCompletionHandlerWrapper(editMessageCompletionHandler: completionHandler,
-                                                                                                messageHolder: messageHolder,
-                                                                                                message: oldMessage!))
+                              dataMessageCompletionHandler: nil, editMessageCompletionHandler: EditMessageCompletionHandlerWrapper(editMessageCompletionHandler: completionHandler,
+                                                                                                                                   messageHolder: messageHolder,
+                                                                                                                                   message: oldMessage), sendMessageCompletionHandler: nil)
             return true
         }
         return false
@@ -524,11 +705,11 @@ extension MessageStreamImpl: MessageStream {
         let id = message.getID()
         let oldMessage = messageHolder.changing(messageID: id, message: nil)
         
-        if oldMessage != nil {
+        if let oldMessage = oldMessage {
             webimActions.delete(clientSideID: id,
                                 completionHandler: DeleteMessageCompletionHandlerWrapper(deleteMessageCompletionHandler: completionHandler,
                                                                                          messageHolder: messageHolder,
-                                                                                         message: oldMessage!))
+                                                                                         message: oldMessage))
             return true
         }
         return false
@@ -538,6 +719,16 @@ extension MessageStreamImpl: MessageStream {
         try accessChecker.checkAccess()
         
         webimActions.setChatRead()
+    }
+    
+    func sendDialogTo(emailAddress: String,
+                      completionHandler: SendDialogToEmailAddressCompletionHandler?) throws {
+        try accessChecker.checkAccess()
+        if !lastChatState.isClosed() {
+            webimActions.sendDialogTo(emailAddress: emailAddress, completionHandler: completionHandler)
+        } else {
+            completionHandler?.onFailure(error: .noChat)
+        }
     }
     
     func set(prechatFields: String) throws {
@@ -550,6 +741,33 @@ extension MessageStreamImpl: MessageStream {
         try accessChecker.checkAccess()
         
         return try messageHolder.newMessageTracker(withMessageListener: messageListener) as MessageTracker
+    }
+    
+    func send(surveyAnswer: String, completionHandler: SendSurveyAnswerCompletionHandler?) throws {
+        try accessChecker.checkAccess()
+        
+        guard let surveyController = surveyController,
+            let survey = surveyController.getSurvey() else { return }
+
+        let formID = surveyController.getCurrentFormID()
+        let questionID = surveyController.getCurrentQuestionPointer()
+        let surveyID = survey.getID()
+        webimActions.sendQuestionAnswer(surveyID: surveyID,
+                                        formID: formID,
+                                        questionID: questionID,
+                                        surveyAnswer: surveyAnswer,
+                                        sendSurveyAnswerCompletionHandler: SendSurveyAnswerCompletionHandlerWrapper(surveyController: surveyController,
+                                                                                                                    sendSurveyAnswerCompletionHandler: completionHandler))
+    }
+    
+    func closeSurvey(completionHandler: SurveyCloseCompletionHandler?) throws {
+        try accessChecker.checkAccess()
+        
+        guard let surveyController = surveyController,
+            let survey = surveyController.getSurvey() else { return }
+        
+        webimActions.closeSurvey(surveyID: survey.getID(),
+                                 surveyCloseCompletionHandler: completionHandler)
     }
     
     func set(visitSessionStateListener: VisitSessionStateListener) {
@@ -592,11 +810,20 @@ extension MessageStreamImpl: MessageStream {
         self.unreadByVisitorTimestampChangeListener = unreadByVisitorTimestampChangeListener
     }
     
+    func set(surveyListener: SurveyListener) {
+        self.surveyController = SurveyController(surveyListener: surveyListener)
+    }
+    
+    func set(helloMessageListener: HelloMessageListener) {
+        self.helloMessageListener = helloMessageListener
+    }
+    
     // MARK: Private methods
     private func sendMessageInternally(messageText: String,
                                        dataJSONString: String? = nil,
                                        isHintQuestion: Bool? = nil,
-                                       dataMessageCompletionHandler: DataMessageCompletionHandler? = nil) throws -> String {
+                                       dataMessageCompletionHandler: DataMessageCompletionHandler? = nil,
+                                       sendMessageComplitionHandler: SendMessageCompletionHandler? = nil) throws -> String {
         try startChat()
         
         let messageID = ClientSideID.generateClientSideID()
@@ -607,7 +834,8 @@ extension MessageStreamImpl: MessageStream {
                           dataJSONString: dataJSONString,
                           isHintQuestion: isHintQuestion,
                           dataMessageCompletionHandler: DataMessageCompletionHandlerWrapper(dataMessageCompletionHandler: dataMessageCompletionHandler,
-                                                                                            messageHolder: messageHolder))
+                                                                                            messageHolder: messageHolder), editMessageCompletionHandler: nil,
+                          sendMessageCompletionHandler: SendMessageCompletionHandlerWrapper(sendMessageCompletionHandler: sendMessageComplitionHandler, messageHolder: messageHolder))
         
         return messageID
     }
@@ -615,6 +843,26 @@ extension MessageStreamImpl: MessageStream {
 }
 
 // MARK: -
+fileprivate final class SendMessageCompletionHandlerWrapper: SendMessageCompletionHandler {
+
+// MARK: - Properties
+    private let messageHolder: MessageHolder
+    private weak var sendMessageCompletionHandler: SendMessageCompletionHandler?
+
+// MARK: - Initialization
+    init(sendMessageCompletionHandler: SendMessageCompletionHandler?,
+         messageHolder: MessageHolder) {
+        self.sendMessageCompletionHandler = sendMessageCompletionHandler
+        self.messageHolder = messageHolder
+}
+
+// MARK: - Methods
+
+    func onSuccess(messageID: String) {
+        sendMessageCompletionHandler?.onSuccess(messageID: messageID)
+    }
+}
+
 fileprivate final class SendFileCompletionHandlerWrapper: SendFileCompletionHandler {
     
     // MARK: - Properties

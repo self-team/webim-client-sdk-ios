@@ -42,13 +42,13 @@ final class FAQCategoryInfoItem {
     }
     
     // MARK: - Properties
-    private var id: Int?
+    private var id: String?
     private var title: String?
     
     // MARK: - Initialization
     init(jsonDictionary: [String: Any?]) {
         if let id = jsonDictionary[JSONField.id.rawValue] as? Int {
-            self.id = id
+            self.id = String(id)
         }
         
         if let title = jsonDictionary[JSONField.title.rawValue] as? String {
@@ -59,13 +59,21 @@ final class FAQCategoryInfoItem {
 }
 
 extension FAQCategoryInfoItem: FAQCategoryInfo {
-    func getID() -> Int {
-        return id!
+    func getID() -> String {
+        guard let id = id else {
+            WebimInternalLogger.shared.log(entry: "ID is nil in FAQCategoryInfoItem.\(#function)")
+            return String()
+        }
+        return id
     }
     
     func getTitle() -> String {
-        return title!
-    }    
+        guard let title = title else {
+            WebimInternalLogger.shared.log(entry: "Title is nil in FAQCategoryInfoItem.\(#function)")
+            return String()
+        }
+        return title
+    }
     
 }
 

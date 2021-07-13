@@ -29,6 +29,8 @@ import Foundation
 
 /**
  Category subtree.
+ - attention:
+ This mechanism can't be used as is. It requires that client server to support this mechanism.
  - author:
  Nikita Kaberov
  - copyright:
@@ -95,6 +97,9 @@ public enum RootType {
      - copyright:
      2019 Webim
      */
+    case category
+    
+    @available(*, unavailable, renamed: "category")
     case CATEGORY
     
     /**
@@ -104,6 +109,9 @@ public enum RootType {
      - copyright:
      2019 Webim
      */
+    case item
+    
+    @available(*, unavailable, renamed: "item")
     case ITEM
     
     /**
@@ -113,6 +121,9 @@ public enum RootType {
      - copyright:
      2019 Webim
      */
+    case unknown
+    
+    @available(*, unavailable, renamed: "unknown")
     case UNKNOWN
     
 }

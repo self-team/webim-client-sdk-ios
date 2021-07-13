@@ -31,109 +31,14 @@ enum Avatar: String {
     case accessibilityHintOperator = "ShowsRatingDialog"
 }
 
-enum BackButton: String {
-    case accessibilityLabel = "Back"
-    case accessibilityHint = "ClosesScreen"
+enum PopupAction: String {
+    case reply = "Reply"
+    case copy = "Copy"
+    case edit = "Edit"
+    case delete = "Delete"
 }
 
-enum ChatClosedDialog: String {
-    case message = "ChatClosed"
-    
-    case buttonTitle = "OK"
-    case buttonAccessibilityHint = "ClosesDialog"
-}
-
-enum CloseChatButton: String {
-    case accessibilityLabel = "CloseChat"
-    case accessibilityHint = "ClosesChat"
-}
-
-enum DepartmentListDialog: String {
-    case title = "ContactTopic"
-    
-    case buttonAccessibilityHint = "ChoosesTopic"
-    
-    case cancelButtonTitle = "Cancel"
-    case cancelButtonAccessibilityHint = "ClosesDialog"
-}
-
-enum FileMessage: String {
-    case fileUnavailable = "FileUnavailable"
-}
-
-enum LeftButton: String {
-    case accessibilityLabel = "ChooseFile"
-    case accessibilityHint = "ShowsImagePicker"
-}
-
-enum RateOperatorErrorMessage: String {
-    case title = "OperatorRatingFailed"
-    
-    case buttonTitle = "OK"
-    case buttonAccessibilityHint = "ClosesRateOperatorError"
-
-    case message = "RateOperatorErrorMessage"
-}
-
-enum RatingDialog: String {
-    case actionButtonAccessibilityHint = "RatesOperator"
-    case actionButtonTitle = "Rate"
-    
-    case cancelButtonAccessibilityHint = "ClosesRatingDialog"
-    case cancelButtonTitle = "Cancel"
-}
-
-enum SendFileErrorMessage: String {
-    case title = "FileSendingFailed"
-    
-    case buttonTitle = "OK"
-    case buttonAccessibilityHint = "ClosesSendFileError"
-    
-    // Error messages
-    case fileSizeExceeded = "FileTooLarge"
-    case fileTypeNotAllowed = "FileTypeNotSupported"
-    case fileNotFound = "FileNotFound"
-    case unknownError = "FileSendingUnknownError"
-}
-
-enum SessionCreationErrorDialog: String {
-    case buttonTitle = "OK"
-    case buttonAccessibilityHint = "ClosesSessionError"
-    
-    case title = "SessionCreationFailed"
-    
-    // Error messages
-    case accountBlocked = "AccountBlocked"
-    case visitorBanned = "VisitorBanned"
-}
-
-enum SettingsErrorDialog: String {
-    case buttonTitle = "OK"
-    case buttonAccessibilityHint = "ClosesSettingsError"
-    
-    case title = "InvalidSettings"
-    
-    // Error messages
-    case wrongAccountName = "AccountNameEmpty"
-    case wrongLocation = "LocationEmpty"
-}
-
-enum ShowFileDialog: String {
-    case buttonTitle = "OK"
-    
-    // Error messages
-    case imageFormatInvalid = "ImageFormatInvalid"
-    case imageLinkInvalid = "ImageLinkInvalid"
-    case notImage = "PreviewUnavailable"
-    
-    case accessibilityHint = "ClosesFilePreview"
-}
-
-enum StartView: String {
-    case welcomeText = "Welcome to the WebimClientLibrary demo app!\n\nTo start a chat tap on the button below.\n\nOperator can answer to your chat at:\nhttps://demo.webim.ru/\nLogin: o@webim.ru\nPassword: password\n\nThis app source code can be found at:\nhttps://github.com/webim/webim-client-sdk-ios"
-}
-
-enum TableView: String {
-    case refreshControlText = "LoadingMessages"
-    case emptyTableViewText = "EmptyChat"
+enum OperatorAvatar: String {
+    case placeholder = "NoAvatarURL"
+    case empty = "GhostImage"
 }

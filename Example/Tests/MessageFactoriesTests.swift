@@ -58,8 +58,8 @@ class CurrentChatMapperTests: XCTestCase {
         let message = currentChatMapper.map(message: MESSAGE_ITEM)!
         
         XCTAssertEqual(message.getType(),
-                       MessageType.OPERATOR)
-        XCTAssertNil(message.getAttachment())
+                       MessageType.operatorMessage)
+        XCTAssertNil(message.getData()?.getAttachment())
         XCTAssertEqual(message.getText(),
                        "42")
         XCTAssertNil(message.getRawText())
@@ -91,8 +91,8 @@ class HistoryMapperTests: XCTestCase {
         let message = historyMapper.map(message: MESSAGE_ITEM)!
         
         XCTAssertEqual(message.getType(),
-                       MessageType.OPERATOR)
-        XCTAssertNil(message.getAttachment())
+                       MessageType.operatorMessage)
+        XCTAssertNil(message.getData()?.getAttachment())
         XCTAssertEqual(message.getText(),
                        "42")
         XCTAssertNil(message.getRawText())
@@ -124,7 +124,7 @@ class SendingFactoryTests: XCTestCase {
                        "1")
         XCTAssertTrue(message.getSenderName().isEmpty)
         XCTAssertEqual(message.getType(),
-                       MessageType.VISITOR)
+                       MessageType.visitorMessage)
         XCTAssertEqual(message.getText(),
                        "Text")
     }
@@ -136,7 +136,7 @@ class SendingFactoryTests: XCTestCase {
                        "1")
         XCTAssertTrue(message.getSenderName().isEmpty)
         XCTAssertEqual(message.getType(),
-                       MessageType.FILE_FROM_VISITOR)
+                       MessageType.fileFromVisitor)
         XCTAssertTrue(message.getText().isEmpty)
     }
     

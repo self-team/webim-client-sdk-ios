@@ -47,6 +47,7 @@ final class MessageItem {
         case data = "data"
         case deleted = "deleted"
         case id = "id"
+        case isEdited = "edited"
         case kind = "kind"
         case quote = "quote"
         case read = "read"
@@ -63,9 +64,11 @@ final class MessageItem {
     private var canBeReplied: Bool?
     private var chatID: String?
     private var clientSideID: String?
-    private var data: [String: Any?]?
+    private var rawData: [String: Any?]?
+    private var data: MessageData?
     private var deleted: Bool?
     private var id: String?
+    private var isEdited: Bool?
     private var kind: MessageKind?
     private var quote: QuoteItem?
     private var read: Bool?
@@ -104,7 +107,11 @@ final class MessageItem {
             self.clientSideID = clientSideID
         }
         
-        if let data = jsonDictionary[JSONField.data.rawValue] as? [String: Any?] {
+        if let rawData = jsonDictionary[JSONField.data.rawValue] as? [String: Any?] {
+            self.rawData = rawData
+        }
+            
+        if let data = jsonDictionary[JSONField.data.rawValue] as? MessageData {
             self.data = data
         }
         
@@ -139,6 +146,10 @@ final class MessageItem {
         if let timestampInSecond = jsonDictionary[JSONField.timestampInSecond.rawValue] as? Double {
             self.timestampInSecond = timestampInSecond
         }
+        
+        if let isEdited = jsonDictionary[JSONField.isEdited.rawValue] as? Bool {
+            self.isEdited = isEdited
+        }
     }
     
     // MARK: - Methods
@@ -167,7 +178,11 @@ final class MessageItem {
         return avatarURLString
     }
     
-    func getData() -> [String: Any?]? {
+    func getRawData() -> [String: Any?]? {
+        return rawData
+    }
+    
+    func getData() -> MessageData? {
         return data
     }
     
@@ -188,7 +203,13 @@ final class MessageItem {
     }
     
     func getTimeInMicrosecond() -> Int64? {
-        return ((timestampInMicrosecond != -1) ? timestampInMicrosecond : Int64(timestampInSecond! * 1_000_000))
+        if timestampInMicrosecond != -1 {
+            return timestampInMicrosecond
+        }
+        if let timestampInSecond = timestampInSecond {
+            return Int64(timestampInSecond * 1_000_000)
+        }
+        return nil
     }
     
     func getRead() -> Bool? {
@@ -207,6 +228,10 @@ final class MessageItem {
         return canBeReplied ?? false
     }
     
+    func getIsEdited() -> Bool {
+        return isEdited ?? false
+    }
+    
     // MARK: -
     enum MessageKind: String {
         // Raw values equal to field names received in responses from server.
@@ -218,52 +243,59 @@ final class MessageItem {
         case forOperator = "for_operator"
         case info = "info"
         case keyboard = "keyboard"
-        case keyboard_response = "keyboard_response"
+        case keyboardResponse = "keyboard_response"
+        @available(*, unavailable, renamed: "keyboardResponse")
+        case keyboard_response = ""
         case operatorMessage = "operator"
         case operatorBusy = "operator_busy"
+        case stickerVisitor = "sticker_visitor"
         case visitorMessage = "visitor"
         
         // MARK: - Initialization
         init(messageType: MessageType) {
             switch messageType {
-            case .ACTION_REQUEST:
+            case .actionRequest:
                 self = .actionRequest
                 
                 break
-            case .CONTACTS_REQUEST:
+            case .contactInformationRequest:
                 self = .contactInformationRequest
                 
                 break
-            case .FILE_FROM_OPERATOR:
+            case .fileFromOperator:
                 self = .fileFromOperator
                 
                 break
-            case .FILE_FROM_VISITOR:
+            case .fileFromVisitor:
                 self = .fileFromVisitor
                 
                 break
-            case .INFO:
+            case .info:
                 self = .info
                 
                 break
-            case .KEYBOARD:
+            case .keyboard:
                 self = .keyboard
                 
                 break
-            case .KEYBOARD_RESPONSE:
-                self = .keyboard_response
+            case .keyboardResponse:
+                self = .keyboardResponse
                 
                 break
-            case .OPERATOR:
+            case .operatorMessage:
                 self = .operatorMessage
                 
                 break
-            case .OPERATOR_BUSY:
+            case .operatorBusy:
                 self = .operatorBusy
                 
                 break
-            case .VISITOR:
+            case .visitorMessage:
                 self = .visitorMessage
+                
+                break
+            case .stickerVisitor:
+                self = .stickerVisitor
                 
                 break
             }
@@ -357,6 +389,7 @@ final class QuoteItem {
     }
     
     static func toDictionary(quote: Quote) -> [String: Any] {
+        
         var messageDictionary = [String : Any]()
         if let authorId = quote.getAuthorID() {
             messageDictionary[JSONField.authorId.rawValue] = authorId
@@ -369,6 +402,10 @@ final class QuoteItem {
         }
         if let text = quote.getMessageText() {
             messageDictionary[JSONField.text.rawValue] = text
+        }
+        if quote.getMessageAttachment() != nil,
+           let quoteImpl = quote as? QuoteImpl {
+            messageDictionary[JSONField.text.rawValue] = quoteImpl.getRawText()
         }
         if let messageType = quote.getMessageType() {
             messageDictionary[JSONField.kind.rawValue] = MessageItem.MessageKind(messageType: messageType).rawValue
@@ -418,16 +455,108 @@ final class QuoteItem {
         
         init(quoteState: QuoteState) {
             switch quoteState {
-            case .FILLED:
+            case .filled:
                 self = .filled
                 
                 break
-            case .PENDING:
+            case .pending:
                 self = .pending
                 
                 break
-            case .NOT_FOUND:
+            case .notFound:
                 self = .notFound
+            }
+        }
+    }
+}
+
+final public class MessageDataItem {
+    private enum JSONField: String {
+        case file = "file"
+    }
+    
+    private var file: FileItem?
+    
+    init(jsonDictionary: [String: Any?]) {
+        if let dataDictonary = jsonDictionary[JSONField.file.rawValue] as? [String: Any?]  {
+            self.file = FileItem(jsonDictionary: dataDictonary)
+        }
+    }
+    
+    func getFile() -> FileItem? {
+        return file
+    }
+}
+
+
+final class FileItem {
+    private enum JSONField: String {
+        case downloadProgress = "progress"
+        case state = "state"
+        case properties = "desc"
+        case errorType = "error"
+        case errorMessage = "error_message"
+    }
+    
+    private var downloadProgress: Int64?
+    private var state: String?
+    private var properties: FileParametersItem?
+    private var errorType: String?
+    private var errorMessage: String?
+    
+    
+    init(jsonDictionary: [String: Any?]) {
+        if let progress = jsonDictionary[JSONField.downloadProgress.rawValue] as? Int64 {
+            self.downloadProgress = progress
+        }
+        
+        if let state = jsonDictionary[JSONField.state.rawValue] as? String {
+            self.state = state
+        }
+        
+        if let fileParametersDictonary = jsonDictionary[JSONField.properties.rawValue] as? [String: Any?]  {
+            self.properties = FileParametersItem(jsonDictionary: fileParametersDictonary)
+        }
+    }
+    
+    func getDownloadProgress() -> Int64? {
+        return downloadProgress
+    }
+    
+    func getState() -> String? {
+        return state
+    }
+    
+    func getProperties() -> FileParametersItem? {
+        return properties
+    }
+    
+    func getErrorType() -> String? {
+        return errorType
+    }
+    
+    func getErrorMessage() -> String? {
+        return errorMessage
+    }
+    
+    enum FileStateItem: String {
+        // Raw values equal to field names received in responses from server.
+        case error = "error"
+        case ready = "ready"
+        case upload = "upload"
+        
+        init(fileState: FileState) {
+            switch fileState {
+            case .error:
+                self = .error
+                
+                break
+            case .ready:
+                self = .ready
+                
+                break
+            case .upload:
+                self = .upload
             }
         }
     }

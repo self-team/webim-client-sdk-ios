@@ -29,6 +29,8 @@ import Foundation
 
 /**
  FAQCategory without children.
+ - attention:
+ This mechanism can't be used as is. It requires that client server to support this mechanism.
  - author:
  Nikita Kaberov
  - copyright:
@@ -45,7 +47,7 @@ public protocol FAQCategoryInfo {
      - copyright:
      2019 Webim
      */
-    func getID() -> Int
+    func getID() -> String
     
     /**
      - returns:

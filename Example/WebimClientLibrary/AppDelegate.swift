@@ -24,10 +24,10 @@
 //  SOFTWARE.
 //
 
-import Crashlytics
-import Fabric
+import Firebase
 import UIKit
 import WebimClientLibrary
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -44,19 +44,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        Fabric.with([Crashlytics.self])
+        FirebaseApp.configure()
         
         // Remote notifications configuration
-        let notificationTypes: UIUserNotificationType = [.alert,
+        let notificationTypes: UNAuthorizationOptions = [.alert,
                                                          .badge,
                                                          .sound]
-        let remoteNotificationSettings = UIUserNotificationSettings(types: notificationTypes,
-                                                                    categories: nil)
-        application.registerUserNotificationSettings(remoteNotificationSettings)
-        application.registerForRemoteNotifications()
-        application.applicationIconBadgeNumber = 0
-        
-        
+        UNUserNotificationCenter.current().requestAuthorization(options: notificationTypes) { (granted, error) in
+            if granted {
+                // application.registerUserNotificationSettings(remoteNotificationSettings)
+                DispatchQueue.main.async {
+                    application.registerForRemoteNotifications()
+                    application.applicationIconBadgeNumber = 0
+                }
+            } else {
+                print(error ?? "Error with remote notification")
+            }
+        }
         
         return true
     }
@@ -85,6 +89,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             // Handle Webim remote notification.
         } else {
             // Handle another type of remote notification.
+        }
+    }
+    
+    static var keyboardWindow: UIWindow? {
+        
+        let windows = UIApplication.shared.windows
+        if let keyboardWindow = windows.first(where: { NSStringFromClass($0.classForCoder) == "UIRemoteKeyboardWindow" }) {
+          return keyboardWindow
+        }
+        return nil
+    }
+    
+    static func keyboardHidden(_ hidden: Bool) {
+        DispatchQueue.main.async {
+            AppDelegate.keyboardWindow?.isHidden = hidden
         }
     }
 }

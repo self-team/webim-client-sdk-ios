@@ -51,10 +51,6 @@ final class FAQStructureItem {
     
     // MARK: - Initialization
     init(jsonDictionary: [String: Any?]) {
-        if let id = jsonDictionary[JSONField.id.rawValue] as? String {
-            self.id = id
-        }
-        
         if let title = jsonDictionary[JSONField.title.rawValue] as? String {
             self.title = title
         }
@@ -63,7 +59,7 @@ final class FAQStructureItem {
             self.type = toRootType(type: type)
         }
         
-        if type == .ITEM {
+        if type == .item {
             if let id = jsonDictionary[JSONField.id.rawValue] as? String {
                 self.id = id
             }
@@ -86,9 +82,9 @@ final class FAQStructureItem {
     private func toRootType(type: String) -> RootType? {
         switch type {
         case "item":
-            return .ITEM
+            return .item
         case "category":
-            return .CATEGORY
+            return .category
         default:
             return nil
         }
@@ -98,11 +94,19 @@ final class FAQStructureItem {
 
 extension FAQStructureItem: FAQStructure {
     func getID() -> String {
-        return id!
+        guard let id = id else {
+            WebimInternalLogger.shared.log(entry: "ID is nil in FAQStructureItem.\(#function)")
+            return String()
+        }
+        return id
     }
     
     func getType() -> RootType {
-        return type!
+        guard let type = type else {
+            WebimInternalLogger.shared.log(entry: "Type is nil in FAQStructureItem.\(#function)")
+            return .unknown
+        }
+        return type
     }
     
     func getChildren() -> [FAQStructure] {
@@ -110,7 +114,11 @@ extension FAQStructureItem: FAQStructure {
     }
     
     func getTitle() -> String {
-        return title!
+        guard let title = title else {
+            WebimInternalLogger.shared.log(entry: "Title is nil in FAQStructureItem.\(#function)")
+            return String()
+        }
+        return title
     }
     
     

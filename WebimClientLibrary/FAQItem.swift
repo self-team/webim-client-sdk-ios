@@ -29,6 +29,8 @@ import Foundation
 
 /**
  FAQ page with some information.
+ - attention:
+ This mechanism can't be used as is. It requires that client server to support this mechanism.
  - author:
  Nikita Kaberov
  - copyright:
@@ -56,7 +58,7 @@ public protocol FAQItem {
      - copyright:
      2019 Webim
      */
-    func getCategories() -> [Int]
+    func getCategories() -> [String]
     
     /**
      - returns:
@@ -138,6 +140,9 @@ public enum UserRate {
      - copyright:
      2019 Webim
      */
+    case like
+    
+    @available(*, unavailable, renamed: "like")
     case LIKE
     
     /**
@@ -147,6 +152,9 @@ public enum UserRate {
      - copyright:
      2019 Webim
      */
+    case dislike
+    
+    @available(*, unavailable, renamed: "dislike")
     case DISLIKE
     
     /**
@@ -156,6 +164,9 @@ public enum UserRate {
      - copyright:
      2019 Webim
      */
+    case noRate
+    
+    @available(*, unavailable, renamed: "noRate")
     case NO_RATE
     
 }

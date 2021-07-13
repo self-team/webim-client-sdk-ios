@@ -46,7 +46,7 @@ final class DepartmentFactory {
     // MARK: - Methods
     
     func convert(departmentItem: DepartmentItem) -> DepartmentImpl {
-        var fullLogoURL: URL? = nil
+        var fullLogoURL: URL?
         if let logoURLString = departmentItem.getLogoURLString() {
             fullLogoURL = URL(string: serverURLString + logoURLString)
         }
@@ -63,15 +63,15 @@ final class DepartmentFactory {
     private func publicState(ofDepartmentOnlineStatus departmentOnlineStatus: DepartmentItem.InternalDepartmentOnlineStatus) -> DepartmentOnlineStatus {
         switch departmentOnlineStatus {
         case .busyOffline:
-            return .BUSY_OFFLINE
+            return .busyOffline
         case .busyOnline:
-            return .BUSY_ONLINE
+            return .busyOnline
         case .offline:
-            return .OFFLINE
+            return .offline
         case .online:
-            return .ONLINE
+            return .online
         case .unknown:
-            return .UNKNOWN
+            return .unknown
         }
     }
     

@@ -28,6 +28,7 @@ import Foundation
 
 // MARK: - Global constants
 fileprivate let DEFAULT_MIME_TYPE = "application/octet-stream"
+// swiftlint:disable colon
 fileprivate let mimeTypes = [
     "html" : "text/html",
     "htm" : "text/html",
@@ -37,6 +38,8 @@ fileprivate let mimeTypes = [
     "gif" : "image/gif",
     "jpeg" : "image/jpeg",
     "jpg" : "image/jpeg",
+    "heic" : "image/heic",
+    "heif" : "image/heif",
     "js" : "application/javascript",
     "atom" : "application/atom+xml",
     "rss" : "application/rss+xml",
@@ -131,9 +134,13 @@ fileprivate let mimeTypes = [
     "asx" : "video/x-ms-asf",
     "asf" : "video/x-ms-asf",
     "wmv" : "video/x-ms-wmv",
-    "avi" : "video/x-msvideo"
+    "avi" : "video/x-msvideo",
+    "key" : "application/x-iwork-keynote-sffkey",
+    "pages" : "application/x-iwork-pages-sffpages",
+    "numbers" : "application/x-iwork-numbers-sffnumbers"
 ]
 
+// swiftlint:enable colon
 // MARK: -
 struct MimeType {
     
@@ -148,12 +155,37 @@ struct MimeType {
         `extension` = url.pathExtension
     }
     
+    public init() {
+        `extension` = "jpeg"
+    }
+    
 }
 
 // MARK: -
 func isImage(contentType: String) -> Bool {
     return ((contentType == "image/gif")
         || (contentType == "image/jpeg")
+        || (contentType == "image/x-ms-bmp")
+        || (contentType == "image/webp")
         || (contentType == "image/png")
         || (contentType == "image/tiff"))
+}
+
+// Check if file is acceptable to show in WKWebView
+func isAcceptableFile(contentType: String) -> Bool {
+    return ((contentType == mimeTypes["txt"])
+    || (contentType == mimeTypes["rtf"])
+    || (contentType == mimeTypes["pdf"])
+    || (contentType == mimeTypes["doc"])
+    || (contentType == mimeTypes["docx"])
+    || (contentType == mimeTypes["xls"])
+    || (contentType == mimeTypes["xlsx"])
+    || (contentType == mimeTypes["ppt"])
+    || (contentType == mimeTypes["pptx"])
+    || (contentType == mimeTypes["mp4"])
+    || (contentType == mimeTypes["key"])
+    || (contentType == mimeTypes["pages"])
+    || (contentType == mimeTypes["numbers"])
+        
+    || (contentType == "text/rtf"))
 }

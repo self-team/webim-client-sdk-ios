@@ -60,18 +60,22 @@ class MessageHolderTests: XCTestCase {
                                        keyboard: nil,
                                        keyboardRequest: nil,
                                        operatorID: MessageImplMockData.operatorID.rawValue,
+                                       quote: nil,
                                        senderAvatarURLString: MessageImplMockData.avatarURLString.rawValue,
                                        senderName: MessageImplMockData.senderName.rawValue,
-                                       type: MessageType.OPERATOR,
+                                       sticker: nil,
+                                       type: MessageType.operatorMessage,
+                                       rawData: nil,
                                        data: nil,
-                                       text: MessageImplMockData.text.rawValue,
+                                       text: MessageImplMockData.text.rawValue + String(index),
                                        timeInMicrosecond: Int64(index),
-                                       attachment: nil,
                                        historyMessage: true,
                                        internalID: String(index),
                                        rawText: nil,
                                        read: false,
-                                       messageCanBeEdited: false))
+                                       messageCanBeEdited: false,
+                                       messageCanBeReplied: false,
+                                       messageIsEdited: false))
         }
         
         messagesCount = messagesCount + numberOfMessages
@@ -88,18 +92,22 @@ class MessageHolderTests: XCTestCase {
                                            keyboard: nil,
                                            keyboardRequest: nil,
                                            operatorID: MessageImplMockData.operatorID.rawValue,
+                                           quote: nil,
                                            senderAvatarURLString: MessageImplMockData.avatarURLString.rawValue,
                                            senderName: MessageImplMockData.senderName.rawValue,
-                                           type: MessageType.OPERATOR,
+                                           sticker: nil,
+                                           type: MessageType.operatorMessage,
+                                           rawData: nil,
                                            data: nil,
-                                           text: MessageImplMockData.text.rawValue,
+                                           text: MessageImplMockData.text.rawValue + String(index),
                                            timeInMicrosecond: Int64(index),
-                                           attachment: nil,
                                            historyMessage: false,
                                            internalID: String(index),
                                            rawText: nil,
                                            read: false,
-                                           messageCanBeEdited: false))
+                                           messageCanBeEdited: false,
+                                           messageCanBeReplied: false,
+                                           messageIsEdited: false))
         }
         
         messagesCount = messagesCount + numberOfMessages
@@ -116,18 +124,22 @@ class MessageHolderTests: XCTestCase {
                                          keyboard: message.getKeyboard(),
                                          keyboardRequest: message.getKeyboardRequest(),
                                          operatorID: message.getOperatorID(),
+                                         quote: nil,
                                          senderAvatarURLString: message.getSenderAvatarURLString(),
                                          senderName: message.getSenderName(),
+                                         sticker: nil,
                                          type: message.getType(),
+                                         rawData: nil,
                                          data: message.getData(),
                                          text: message.getText(),
                                          timeInMicrosecond: message.getTimeInMicrosecond(),
-                                         attachment: message.getAttachment(),
                                          historyMessage: true,
                                          internalID: String(message.getTimeInMicrosecond()),
                                          rawText: message.getRawText(),
                                          read: message.getRead(),
-                                         messageCanBeEdited: message.canBeEdited())
+                                         messageCanBeEdited: message.canBeEdited(),
+                                         messageCanBeReplied: false,
+                                         messageIsEdited: false)
             result.append(newMessage)
         }
         
@@ -142,18 +154,22 @@ class MessageHolderTests: XCTestCase {
                            keyboard: nil,
                            keyboardRequest: nil,
                            operatorID: MessageImplMockData.operatorID.rawValue,
+                           quote: nil,
                            senderAvatarURLString: MessageImplMockData.avatarURLString.rawValue,
                            senderName: MessageImplMockData.senderName.rawValue,
-                           type: MessageType.OPERATOR,
+                           sticker: nil,
+                           type: MessageType.operatorMessage,
+                           rawData: nil,
                            data: nil,
                            text: MessageImplMockData.text.rawValue,
                            timeInMicrosecond: Int64(messagesCount),
-                           attachment: nil,
                            historyMessage: false,
                            internalID: String(messagesCount),
                            rawText: nil,
                            read: false,
-                           messageCanBeEdited: false)
+                           messageCanBeEdited: false,
+                           messageCanBeReplied: false,
+                           messageIsEdited: false)
     }
     
     private func newEdited(currentChatMessage: MessageImpl) -> MessageImpl {
@@ -162,18 +178,22 @@ class MessageHolderTests: XCTestCase {
                            keyboard: currentChatMessage.getKeyboard(),
                            keyboardRequest: currentChatMessage.getKeyboardRequest(),
                            operatorID: currentChatMessage.getOperatorID(),
+                           quote: nil,
                            senderAvatarURLString: currentChatMessage.getSenderAvatarURLString(),
                            senderName: currentChatMessage.getSenderName(),
+                           sticker: nil,
                            type: currentChatMessage.getType(),
+                           rawData: nil,
                            data: nil,
                            text: (currentChatMessage.getText() + " One more thing."),
                            timeInMicrosecond: currentChatMessage.getTimeInMicrosecond(),
-                           attachment: nil,
                            historyMessage: false,
                            internalID: currentChatMessage.getCurrentChatID(),
                            rawText: nil,
                            read: false,
-                           messageCanBeEdited: false)
+                           messageCanBeEdited: false,
+                           messageCanBeReplied: false,
+                           messageIsEdited: false)
     }
     
     private func newEdited(historyMessage: MessageImpl) -> MessageImpl {
@@ -182,18 +202,22 @@ class MessageHolderTests: XCTestCase {
                            keyboard: historyMessage.getKeyboard(),
                            keyboardRequest: historyMessage.getKeyboardRequest(),
                            operatorID: historyMessage.getOperatorID(),
+                           quote: nil,
                            senderAvatarURLString: historyMessage.getSenderAvatarURLString(),
                            senderName: historyMessage.getSenderName(),
+                           sticker: nil,
                            type: historyMessage.getType(),
+                           rawData: nil,
                            data: nil,
                            text: (historyMessage.getText() + " One more thing."),
                            timeInMicrosecond: historyMessage.getTimeInMicrosecond(),
-                           attachment: nil,
                            historyMessage: true,
                            internalID: historyMessage.getHistoryID()?.getDBid(),
                            rawText: nil,
                            read: false,
-                           messageCanBeEdited: false)
+                           messageCanBeEdited: false,
+                           messageCanBeReplied: false,
+                           messageIsEdited: false)
     }
     
     private func newMessageHolder(withHistory history: [MessageImpl] = [MessageImpl]()) -> MessageHolder {
@@ -204,7 +228,7 @@ class MessageHolderTests: XCTestCase {
                                                                                   queue: DispatchQueue.global(qos: .userInteractive))
         let actionRequestLoop = ActionRequestLoop(completionHandlerExecutor: execIfNotDestroyedHandlerExecutor,
                                                   internalErrorListener: InternalErrorListenerForTests())
-        let webimActions = WebimActions(baseURL: MessageImplMockData.serverURLString.rawValue,
+        let webimActions = WebimActionsImpl(baseURL: MessageImplMockData.serverURLString.rawValue,
                                         actionRequestLoop: actionRequestLoop)
         let remoteHistoryProvider = RemoteHistoryProviderForTests(withWebimActions: webimActions,
                                                                   historyMessageMapper: HistoryMessageMapper(withServerURLString: MessageImplMockData.serverURLString.rawValue),
@@ -402,9 +426,9 @@ class MessageHolderTests: XCTestCase {
         try messageTracker.getNextMessages(byLimit: 100) { messages in
             completionHandlerMessages = messages as? [MessageImpl]
         }
-        // Then: No messages should be received and no history requests should be performed.
+        // Then: after emptying the history will be made a one more request.
         XCTAssertEqual(completionHandlerMessages!, [MessageImpl]())
-        XCTAssertEqual((messageHolder.getRemoteHistoryProvider() as! RemoteHistoryProviderForTests).numberOfCalls, 1)
+        XCTAssertEqual((messageHolder.getRemoteHistoryProvider() as! RemoteHistoryProviderForTests).numberOfCalls, 2)
         
         // MARK: Test 4
         // When: Resetting 15 messages back and requesting for all messages.
@@ -414,7 +438,7 @@ class MessageHolderTests: XCTestCase {
         }
         // Then: 15 messages should be received and no history requests should be preformed.
         XCTAssertEqual(completionHandlerMessages!, (history1 + Array(history2[0 ... 4])))
-        XCTAssertEqual((messageHolder.getRemoteHistoryProvider() as! RemoteHistoryProviderForTests).numberOfCalls, 1)
+        XCTAssertEqual((messageHolder.getRemoteHistoryProvider() as! RemoteHistoryProviderForTests).numberOfCalls, 2)
     }
     
     func testInsertMessagesBetweenOlderHistoryAndCurrentChat() throws {
@@ -605,11 +629,11 @@ class MessageHolderTests: XCTestCase {
         XCTAssertEqual(completionHandlerMessages!, Array(currentChat[0 ... 8]))
         
         // MARK: Test 4
-        try messageTracker.getNextMessages(byLimit: 10) { messages in
+        try messageTracker.getNextMessages(byLimit: 5) { messages in
             completionHandlerMessages = messages as? [MessageImpl]
         }
         // Then: Completion handlers should be called first on received history messages.
-        XCTAssertEqual(completionHandlerMessages!, history1)
+        XCTAssertEqual(completionHandlerMessages!, Array(history1[5 ... 9]))
     }
     
     func testRequestAsManyMessagesAsReceivedWithHistoryForCurrentChat() throws {
@@ -1620,7 +1644,7 @@ class MessageHolderTests: XCTestCase {
         let messageToSend = MessageToSend(serverURLString: "http://demo.webim.ru",
                                           id: "1",
                                           senderName: "Sender",
-                                          type: .OPERATOR,
+                                          type: .operatorMessage,
                                           text: "Text",
                                           timeInMicrosecond: 1)
         let messageHolder = newMessageHolder()
@@ -1634,7 +1658,7 @@ class MessageHolderTests: XCTestCase {
         let messageToSend = MessageToSend(serverURLString: "http://demo.webim.ru",
                                           id: "1",
                                           senderName: "Sender",
-                                          type: .OPERATOR,
+                                          type: .operatorMessage,
                                           text: "Text",
                                           timeInMicrosecond: 1)
         let messageHolder = newMessageHolder()
@@ -1649,7 +1673,7 @@ class MessageHolderTests: XCTestCase {
         let messageToSend = MessageToSend(serverURLString: "http://demo.webim.ru",
                                           id: messageID,
                                           senderName: "Sender",
-                                          type: .OPERATOR,
+                                          type: .operatorMessage,
                                           text: "Text",
                                           timeInMicrosecond: 1)
         let messageHolder = newMessageHolder()

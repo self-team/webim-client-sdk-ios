@@ -45,9 +45,15 @@ final class OperatorFactory {
     
     // MARK: - Methods
     func createOperatorFrom(operatorItem: OperatorItem?) -> OperatorImpl? {
-        return ((operatorItem == nil) ? nil : OperatorImpl(id: operatorItem!.getID(),
-                                                           name: operatorItem!.getFullName(),
-                                                           avatarURLString: ((operatorItem!.getAvatarURLString() == nil) ? nil : (serverURLString + operatorItem!.getAvatarURLString()!))))
+        guard let operatorItem = operatorItem else { return nil }
+        var avatarURL: String? = nil
+        if let url = operatorItem.getAvatarURLString(),
+            !url.isEmpty {
+            avatarURL = serverURLString + url
+        }
+        return OperatorImpl(id: operatorItem.getID(),
+                            name: operatorItem.getFullName(),
+                            avatarURLString: avatarURL)
     }
     
 }
